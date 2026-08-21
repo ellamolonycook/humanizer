@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { GoalWeight } from "./goals.js";
 import {
   InvalidCandidateError,
-  rankCandidates,
+  rankByImpact,
+  rankByQuickWin,
+  recommend,
   scoreCandidate,
   type AgentCandidate,
 } from "./priority.js";
@@ -88,28 +90,86 @@ describe("scoreCandidate", () => {
   });
 });
 
-describe("rankCandidates", () => {
+describe("rankByQuickWin", () => {
   it("returns highest score first", () => {
     const cheap = candidate({ id: "cheap", expectedImpact: { time: 8 }, setupEffort: 1 });
     const dear = candidate({ id: "dear", expectedImpact: { time: 8 }, setupEffort: 4 });
-    const ranked = rankCandidates([dear, cheap], timeOnly);
+    const ranked = rankByQuickWin([dear, cheap], timeOnly);
     expect(ranked.map((r) => r.candidate.id)).toEqual(["cheap", "dear"]);
   });
 
   it("breaks ties by name so the order is stable across reloads", () => {
     const b = candidate({ id: "b", name: "Beta" });
     const a = candidate({ id: "a", name: "Alpha" });
-    const ranked = rankCandidates([b, a], timeOnly);
+    const ranked = rankByQuickWin([b, a], timeOnly);
     expect(ranked.map((r) => r.candidate.id)).toEqual(["a", "b"]);
   });
 
   it("does not mutate the input array", () => {
     const input = [candidate({ id: "x", setupEffort: 4 }), candidate({ id: "y", setupEffort: 1 })];
-    rankCandidates(input, timeOnly);
+    rankByQuickWin(input, timeOnly);
     expect(input.map((c) => c.id)).toEqual(["x", "y"]);
   });
 
   it("returns an empty list for no candidates", () => {
-    expect(rankCandidates([], timeOnly)).toEqual([]);
+    expect(rankByQuickWin([], timeOnly)).toEqual([]);
+  });
+});
+
+describe("rankByImpact", () => {
+  it("ranks on weighted impact alone, ignoring effort", () => {
+    const big = candidate({ id: "big", expectedImpact: { time: 9 }, setupEffort: 5 });
+    const cheap = candidate({ id: "cheap", expectedImpact: { time: 6 }, setupEffort: 1 });
+    // The exact regression that made Caption Writer beat Chief of Staff.
+    expect(rankByImpact([cheap, big], timeOnly).map((r) => r.candidate.id)).toEqual([
+      "big",
+      "cheap",
+    ]);
+  });
+
+  it("still divides by effort on the quick-win list", () => {
+    const big = candidate({ id: "big", expectedImpact: { time: 9 }, setupEffort: 5 });
+    const cheap = candidate({ id: "cheap", expectedImpact: { time: 6 }, setupEffort: 1 });
+    expect(rankByQuickWin([big, cheap], timeOnly).map((r) => r.candidate.id)).toEqual([
+      "cheap",
+      "big",
+    ]);
+  });
+
+  it("exposes impact and score separately on every result", () => {
+    const c = candidate({ expectedImpact: { time: 8 }, setupEffort: 2 });
+    const [r] = rankByImpact([c], timeOnly);
+    expect(r?.impact).toBe(8);
+    expect(r?.score).toBe(4);
+  });
+
+  it("breaks ties by name so the order is stable", () => {
+    const b = candidate({ id: "b", name: "Beta" });
+    const a = candidate({ id: "a", name: "Alpha" });
+    expect(rankByImpact([b, a], timeOnly).map((r) => r.candidate.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("recommend", () => {
+  it("returns both lists", () => {
+    const big = candidate({ id: "big", expectedImpact: { time: 9 }, setupEffort: 5 });
+    const cheap = candidate({ id: "cheap", expectedImpact: { time: 6 }, setupEffort: 1 });
+    const out = recommend([big, cheap], timeOnly);
+    expect(out.biggestImpact[0]?.candidate.id).toBe("big");
+    expect(out.quickestWins[0]?.candidate.id).toBe("cheap");
+  });
+
+  it("puts the same agents in both lists, only ordered differently", () => {
+    const cs = [candidate({ id: "a" }), candidate({ id: "b", setupEffort: 9 })];
+    const out = recommend(cs, timeOnly);
+    const ids = (l: typeof out.biggestImpact): string[] =>
+      l.map((r) => r.candidate.id).sort();
+    expect(ids(out.biggestImpact)).toEqual(ids(out.quickestWins));
+  });
+
+  it("handles an empty library", () => {
+    const out = recommend([], timeOnly);
+    expect(out.biggestImpact).toEqual([]);
+    expect(out.quickestWins).toEqual([]);
   });
 });
