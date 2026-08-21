@@ -3,13 +3,17 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "demo": "tsx scripts/rank-demo.ts"
   },
   "devDependencies": {
+    "tsx": "^4.23.12",
     "typescript": "^5.7.2",
     "vitest": "^3.0.5"
   }
