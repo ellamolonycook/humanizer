@@ -77,7 +77,7 @@ carrying a weight.
 
 | Goal | Unit | Notes |
 |---|---|---|
-| Time back | hours per period | The Time Rich thesis, made literal |
+| Time back | hours per day, rolled up | The Time Rich thesis, made literal |
 | Revenue | £ generated or pipelined | Justifies price, hardest to attribute honestly |
 | Capacity | volume handled without hiring | Good proxy when revenue attribution is murky |
 | Headspace | stress / context-switching load | Self-rated; the one founders name first and measure last |
@@ -85,10 +85,14 @@ carrying a weight.
 Goals are per-company, set during onboarding, editable later. Changing weights
 re-ranks the agent backlog — which is a coaching moment, not a bug.
 
-> **"Period" means one week** throughout this spec — the confirmation cadence and the
-> rollup granularity. Weekly keeps the coaching rhythm; monthly loses it. This is a
-> default chosen during design, not a value Ella confirmed — see §10.2 before building
-> against it.
+> **"Period" means one day** throughout this spec — the confirmation cadence and the
+> finest rollup granularity. Confirmed by Ella on 2026-08-21, over a weekly default and
+> an explicit warning that daily check-ins are the first thing users abandon.
+>
+> That choice sets a hard design constraint: **the daily confirm must be genuinely one
+> tap.** Anything that asks a founder to type at the end of her day will not get done,
+> and an empty dashboard is worse than no dashboard. Dashboards roll daily outcomes up
+> to weekly and monthly views; nobody reads a daily number.
 
 ### Step 2 — Which agents first?
 
@@ -123,7 +127,7 @@ Pure self-report is vanity. API-measured is impossible at MVP. The middle path i
 | When | What's captured | Cost to user |
 |---|---|---|
 | Agent created | Baseline: how long this took manually, how often it runs, expected impact | A few minutes, during coaching, when she is being honest about where her time goes |
-| Each period | Confirm: did it run, how long did you still spend on it | One tap |
+| Each day | Confirm: did it run, how long did you still spend on it | One tap |
 
 The baseline is captured at design time — the moment the coaching conversation is
 already making her quantify her workload. The ongoing ask is a single confirmation, so
@@ -215,6 +219,19 @@ Kept separate from storage so the scoring logic is unit-testable without a datab
 | **Dashboard** | Rollups: mine and ours, per goal |
 | **Leaderboard** | Gold stars, scored on outcomes delivered |
 
+### 5.1 Leaderboard scope
+
+Two boards, confirmed 2026-08-21:
+
+- **Company board** — always on. Teammates ranked on outcomes delivered. This is where
+  the behaviour change actually comes from; social pressure works when you know the people.
+- **Global board** — opt-in per company. More motivating and far more shareable, but it
+  publishes one company's productivity beside another's.
+
+The global board must be **opt-in at the company level, not per human** — a single
+employee cannot expose her company's numbers. Companies that opt in appear under a
+display name they choose, never their legal entity.
+
 ### UI direction
 
 Light, animated, cartoonish, persona-driven. The user picks a theme (Friends, Mario,
@@ -245,7 +262,8 @@ preference:
 2. Keep it here, but treat **origin as the only durable copy** and never trust local
    disk state without re-checking
 
-This must be decided before the first `npm install`, not after.
+**Resolved 2026-08-21:** the working clone lives at `~/dev/humanizer`, outside iCloud.
+Origin remains the only durable copy.
 
 ---
 
@@ -313,14 +331,20 @@ tested exhaustively without infrastructure.
 
 Answered before implementation begins:
 
-1. **iCloud vs local clone** — decide before first `npm install` (§6)
-2. **Period length** — the spec assumes **weekly** (§3). Affects confirmation fatigue
-   and rollup granularity. Weekly is the recommendation; monthly loses the coaching
-   rhythm. Defaulted during design, awaiting Ella's confirmation.
-3. **Who seeds the agent candidate library?** The backlog needs candidates to rank.
-   Ella's existing agent packs are the obvious seed source.
-4. **Leaderboard scope** — within a company only, or across companies? Cross-company
-   is more motivating and more sensitive.
+1. **Who seeds the agent candidate library?** The backlog needs candidates to rank, or
+   step 2 has nothing to work with. `OS - Time Rich /Build-ARCHIVE-businessOS/Agent
+   Packs/` in Ella's vault is the obvious seed source — awaiting the go-ahead to mine it.
+2. **Email provider for magic links** — Resend is the fastest path. Needs an API key and
+   a verified sending domain. Nobody can log in until this exists.
+3. **Domain** — `humanizer.timerich.ai` or its own?
+4. **Cloudflare API token** — `Workers Scripts:Edit` + `D1:Edit`. Blocks deploy, not
+   local development.
+
+### Resolved
+
+- ~~iCloud vs local clone~~ → moved to `~/dev/humanizer` on 2026-08-21
+- ~~Period length~~ → **daily** (§3)
+- ~~Leaderboard scope~~ → **both** (§5.1)
 
 ---
 
@@ -336,3 +360,6 @@ Recorded so they are not relitigated:
 | Goals are chosen, not assumed | Founders optimise for different things; assuming time was wrong |
 | Priority scoring stays simple arithmetic | Must be defensible out loud on a coaching call |
 | One signal in MVP, four in the interface | Ships now, extends without schema change |
+| Daily confirmation cadence | Ella's call over a weekly default; forces the one-tap constraint |
+| Two leaderboards, global opt-in at company level | Social pressure needs people you know; sharing needs consent |
+| Working clone outside iCloud | iCloud evicts files silently and corrupts `node_modules` |
