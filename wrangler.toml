@@ -1,0 +1,6 @@
+name = "humanizer"
+main = "src/worker/index.ts"
+compatibility_date = "2026-08-21"
+
+# No D1 binding yet — nothing is persisted. State lives in the query string.
+# The binding arrives with the daily confirm, which is the first thing worth storing.
