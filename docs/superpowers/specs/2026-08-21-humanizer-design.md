@@ -100,14 +100,29 @@ Every candidate agent declares an **expected impact** against each goal, plus a
 **setup effort**. That yields a score:
 
 ```
-priority = Σ (expected_impact[goal] × goal_weight[goal]) ÷ setup_effort
+impact   = Σ (expected_impact[goal] × goal_weight[goal])
+quickWin = impact ÷ setup_effort
 ```
 
 Deliberately simple arithmetic. The requirement is not that it is optimal — it is that
 Ella can defend the ranking out loud on a coaching call. A black-box recommender fails
 that test even if it ranks better.
 
-Output: *"Build these three first, in this order, and here is why."*
+**Two lists, not one.** Revised 2026-08-21 after running the engine on the real agent
+library. Ranking on `quickWin` alone let Caption Writer (effort 1) beat Chief of Staff
+(effort 3) in two of three founder profiles, despite Chief of Staff scoring nearly double
+on impact — so the product would have told a founder drowning in admin to build a caption
+writer. That is not a calibration problem, it is the formula. The engine therefore returns:
+
+| List | Ranked on | Answers |
+|---|---|---|
+| **Biggest impact** | `impact` | What matters most, whatever it costs |
+| **Quickest wins** | `quickWin` | What to do first to get moving |
+
+Neither is the whole truth alone, so both are shown and the founder chooses. This is also
+the more coachable output — it is the conversation you would actually have on a call.
+
+Output: *"This is what will change your business. This is what you could ship today."*
 
 ### Step 3 — Did it deliver?
 
@@ -359,6 +374,7 @@ Recorded so they are not relitigated:
 | Team logins, not solo | The leaderboard has to be social to matter |
 | Goals are chosen, not assumed | Founders optimise for different things; assuming time was wrong |
 | Priority scoring stays simple arithmetic | Must be defensible out loud on a coaching call |
+| Two ranked lists, not one | Dividing by effort alone recommends trivial agents over transformative ones |
 | One signal in MVP, four in the interface | Ships now, extends without schema change |
 | Daily confirmation cadence | Ella's call over a weekly default; forces the one-tap constraint |
 | Two leaderboards, global opt-in at company level | Social pressure needs people you know; sharing needs consent |
