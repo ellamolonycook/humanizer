@@ -377,9 +377,10 @@ describe("scoreCandidate", () => {
       { goal: "revenue", weight: 1 },
     ];
     const c = candidate({ expectedImpact: { time: 8, revenue: 6 }, setupEffort: 2 });
+    // Sorted largest-contribution-first, same as the test below asserts.
     expect(scoreCandidate(c, weights).contributions).toEqual([
-      { goal: "time", impact: 8, weight: 0.5, contribution: 4 },
       { goal: "revenue", impact: 6, weight: 1, contribution: 6 },
+      { goal: "time", impact: 8, weight: 0.5, contribution: 4 },
     ]);
   });
 
@@ -826,11 +827,16 @@ git commit -m "feat: outcome rollups that treat skipped days as gaps, not zeros"
 D1 is SQLite-compatible, so the schema is verified against Node 24's built-in
 `node:sqlite` — no Cloudflare account and no dependency required.
 
-**Verified on this machine (Node v24.14.1) before writing this plan:** `CHECK`
-constraints are enforced, `ON DELETE RESTRICT` is enforced *provided*
-`PRAGMA foreign_keys = ON` runs first (SQLite defaults it off — without that line the
-orphaned-agent tests silently pass while the constraint does nothing), `NULL` round-trips
-as `null`, and `GLOB` date patterns match.
+**Verified on this machine (Node v24.14.1):** `CHECK` constraints and
+`ON DELETE RESTRICT` are enforced, `NULL` round-trips as `null`, and `GLOB` date
+patterns match.
+
+**Correction to an earlier draft of this plan:** it claimed SQLite defaults foreign keys
+*off*, so the `PRAGMA foreign_keys = ON` line was load-bearing. That is wrong for
+`node:sqlite` — `DatabaseSync` enables them by default (`PRAGMA foreign_keys` returns
+`1`). Keep the explicit PRAGMA anyway: it documents the requirement and D1 makes no such
+guarantee. Proven by mutation: forcing `PRAGMA foreign_keys = OFF` fails 3 of the 14
+schema tests, so the FK tests are real rather than vacuous.
 
 **Expect this on every run:** `ExperimentalWarning: SQLite is an experimental feature and
 might change at any time`. It is noise from `node:sqlite`, not a failure. Do not "fix" it.
