@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GOAL_TYPES, type GoalWeight } from "./goals.js";
-import { rankCandidates } from "./priority.js";
+import { rankByQuickWin } from "./priority.js";
 import { SEED_LIBRARY, seedById } from "./seed-library.js";
 
 describe("SEED_LIBRARY", () => {
@@ -77,18 +77,18 @@ describe("the library against the scoring engine", () => {
 
   it("ranks without throwing under any single goal", () => {
     for (const goal of GOAL_TYPES) {
-      expect(() => rankCandidates(SEED_LIBRARY, only(goal))).not.toThrow();
+      expect(() => rankByQuickWin(SEED_LIBRARY, only(goal))).not.toThrow();
     }
   });
 
   it("returns every agent, ranked", () => {
-    const ranked = rankCandidates(SEED_LIBRARY, only("time"));
+    const ranked = rankByQuickWin(SEED_LIBRARY, only("time"));
     expect(ranked).toHaveLength(SEED_LIBRARY.length);
   });
 
   it("produces a different winner for revenue than for time", () => {
     const topFor = (goal: (typeof GOAL_TYPES)[number]): string =>
-      rankCandidates(SEED_LIBRARY, only(goal))[0]!.candidate.id;
+      rankByQuickWin(SEED_LIBRARY, only(goal))[0]!.candidate.id;
     // If these matched, the library would be degenerate: goals would not
     // actually change what the product recommends.
     expect(topFor("revenue")).not.toBe(topFor("time"));
@@ -97,7 +97,7 @@ describe("the library against the scoring engine", () => {
   it("gives every agent a non-zero score on at least one goal", () => {
     for (const a of SEED_LIBRARY) {
       const best = GOAL_TYPES.map(
-        (g) => rankCandidates([a], only(g))[0]!.score,
+        (g) => rankByQuickWin([a], only(g))[0]!.score,
       ).reduce((m, s) => Math.max(m, s), 0);
       expect(best, `${a.id} is worthless on every goal`).toBeGreaterThan(0);
     }

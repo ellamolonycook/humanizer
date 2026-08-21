@@ -24,8 +24,19 @@ export interface ScoreContribution {
 
 export interface ScoredCandidate {
   readonly candidate: AgentCandidate;
+  /** Weighted impact before effort is considered — the "how much does this matter" number. */
+  readonly impact: number;
+  /** impact ÷ setupEffort — the "how good a first move is this" number. */
   readonly score: number;
   readonly contributions: readonly ScoreContribution[];
+}
+
+/** Two ways to read the same library. Neither is the whole truth on its own. */
+export interface Recommendation {
+  /** Ranked on impact alone. What matters most, whatever it costs. */
+  readonly biggestImpact: readonly ScoredCandidate[];
+  /** Ranked on impact ÷ effort. What to do first to get moving. */
+  readonly quickestWins: readonly ScoredCandidate[];
 }
 
 export class InvalidCandidateError extends Error {
@@ -65,20 +76,51 @@ export function scoreCandidate(
 
   return {
     candidate,
+    impact: weighted,
     score: weighted / candidate.setupEffort,
     contributions: [...contributions].sort((a, b) => b.contribution - a.contribution),
   };
 }
 
-/** Scores every candidate and returns them best-first. Does not mutate the input. */
-export function rankCandidates(
+function rankBy(
   candidates: readonly AgentCandidate[],
   weights: readonly GoalWeight[],
+  key: (c: ScoredCandidate) => number,
 ): ScoredCandidate[] {
   return candidates
     .map((c) => scoreCandidate(c, weights))
-    .sort(
-      (a, b) =>
-        b.score - a.score || a.candidate.name.localeCompare(b.candidate.name),
-    );
+    .sort((a, b) => key(b) - key(a) || a.candidate.name.localeCompare(b.candidate.name));
+}
+
+/**
+ * Ranked on impact ÷ setup effort — cheapest meaningful move first.
+ *
+ * On its own this list is misleading: dividing by effort lets a trivial agent
+ * outrank a transformative one, which is how a founder drowning in admin gets
+ * told to build a caption writer. Always show it beside `rankByImpact`.
+ */
+export function rankByQuickWin(
+  candidates: readonly AgentCandidate[],
+  weights: readonly GoalWeight[],
+): ScoredCandidate[] {
+  return rankBy(candidates, weights, (c) => c.score);
+}
+
+/** Ranked on weighted impact alone. What matters most, regardless of cost. */
+export function rankByImpact(
+  candidates: readonly AgentCandidate[],
+  weights: readonly GoalWeight[],
+): ScoredCandidate[] {
+  return rankBy(candidates, weights, (c) => c.impact);
+}
+
+/** Both lists, for the founder to choose between. Does not mutate the input. */
+export function recommend(
+  candidates: readonly AgentCandidate[],
+  weights: readonly GoalWeight[],
+): Recommendation {
+  return {
+    biggestImpact: rankByImpact(candidates, weights),
+    quickestWins: rankByQuickWin(candidates, weights),
+  };
 }
