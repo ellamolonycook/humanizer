@@ -377,9 +377,10 @@ describe("scoreCandidate", () => {
       { goal: "revenue", weight: 1 },
     ];
     const c = candidate({ expectedImpact: { time: 8, revenue: 6 }, setupEffort: 2 });
+    // Sorted largest-contribution-first, same as the test below asserts.
     expect(scoreCandidate(c, weights).contributions).toEqual([
-      { goal: "time", impact: 8, weight: 0.5, contribution: 4 },
       { goal: "revenue", impact: 6, weight: 1, contribution: 6 },
+      { goal: "time", impact: 8, weight: 0.5, contribution: 4 },
     ]);
   });
 
